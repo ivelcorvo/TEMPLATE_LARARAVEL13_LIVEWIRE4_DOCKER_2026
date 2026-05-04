@@ -7,6 +7,10 @@ Livewire 4 tem SFC nativo — você não precisa instalar o Volt. O Livewire v4 
 ```bash
 docker compose exec app composer require livewire/livewire:^4.0
 ```
+se o pc for uma carroça é melhor definir o time global do composer antes
+```bash
+docker compose exec app composer config process-timeout 0
+```
 
 ## Passo 2 — Criar o LayoutExecute 
 
