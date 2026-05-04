@@ -43,7 +43,7 @@ meu-projeto/
 No GitHub, clique em **"Use this template"** para criar seu repositório a partir deste, ou clone diretamente:
 
 ```bash
-git clone https://github.com/SEU_USUARIO/laravel-livewire-template.git meu-projeto
+git clone https://github.com/ivelcorvo/TEMPLATE_LARARAVEL13_LIVEWIRE4_DOCKER_2026 meu-projeto
 cd meu-projeto
 ```
 
@@ -58,9 +58,12 @@ Para uma instalação do zero (sem `src/`):
 ```bash
 docker run --rm -v "${PWD}/src:/app" composer create-project laravel/laravel:^13 .
 ```
+se o pc for uma carroça:
+```bash
+docker run --rm -v "${PWD}/src:/app" -e COMPOSER_PROCESS_TIMEOUT=2000 composer create-project laravel/laravel:^13 .
+```
 
 ### 3. Copiar e configurar o ambiente
-
 
 Para o docker-compose (raiz do projeto)
 ```bash
