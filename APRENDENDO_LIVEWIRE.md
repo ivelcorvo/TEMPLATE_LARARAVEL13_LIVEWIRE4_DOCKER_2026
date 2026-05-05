@@ -1,27 +1,35 @@
-# Livewire 4 
+# Livewire 4 — Guia de Início com Single File Components (SFC)
 
-Livewire 4 tem SFC nativo — você não precisa instalar o Volt. O Livewire v4 substitui o Volt. SFC é uma funcionalidade do próprio Livewire 4, sem precisar do pacote separado. O diagrama acima mostra como as peças se encaixam. GitHub
+O Livewire 4 introduziu suporte nativo a **Single File Components (SFC)**: arquivos `.blade.php` que contêm tanto a classe PHP (backend) quanto o template HTML (frontend) no mesmo arquivo, sem precisar de nenhum pacote extra.
+
+> **Nota sobre o Volt:** O pacote Volt ainda existe como uma opção de sintaxe alternativa para SFC, mas **não é necessário instalá-lo**. O Livewire 4 já oferece SFC nativamente.
+
+---
 
 ## Passo 1 — Instalar o Livewire 4
 
 ```bash
 docker compose exec app composer require livewire/livewire:^4.0
 ```
+
 se o pc for uma carroça é melhor definir o time global do composer antes
 ```bash
 docker compose exec app composer config process-timeout 0
 ```
 
-## Passo 2 — Criar o LayoutExecute 
+---
 
-o comando abaixo para gerar o arquivo de layout padrão do Livewire
+## Passo 2 — Criar o Layout Base
+
+Execute o comando abaixo para gerar o arquivo de layout padrão:
+
 ```bash
 docker compose exec app php artisan livewire:layout
 ```
-Isso cria resources/views/layouts/app.blade.php.
 
-abra e edite para o seguinte:
-```bash
+Isso cria `resources/views/layouts/app.blade.php`. O Livewire 4 busca esse layout por padrão com o nome `layouts::app`. Abra e edite para o seguinte:
+
+```blade
 {{-- resources/views/layouts/app.blade.php --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -29,7 +37,9 @@ abra e edite para o seguinte:
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? config('app.name') }}</title>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
     @livewireStyles
 </head>
 <body>
@@ -43,18 +53,25 @@ abra e edite para o seguinte:
 </html>
 ```
 
-## Passo 3 — Criar um Page Component (Single File)
+> **Por que `@livewireStyles` e `@livewireScripts`?**
+> A documentação oficial do Livewire 4 inclui essas diretivas no layout padrão gerado pelo `livewire:layout`. Mantenha-as para garantir que os assets do Livewire sejam carregados corretamente.
 
-Ao criar componentes que serão usados como páginas inteiras, use o namespace pages:: para organizá-los em um diretório dedicado.
+---
+
+## Passo 3 — Criar um Page Component (SFC)
+
+Componentes usados como páginas inteiras são criados com o namespace `pages::`:
 
 ```bash
 docker compose exec app php artisan make:livewire pages::dashboard
 ```
 
-Isso cria um único arquivo em resources/views/pages/⚡dashboard.blade.php (o ⚡ é opcional e serve só para identificação visual no editor).
-O arquivo gerado é o SFC completo — PHP e HTML no mesmo lugar:
-```bash
-{{-- resources/views/pages/dashboard.blade.php --}}
+Isso cria o arquivo em `resources/views/pages/⚡dashboard.blade.php`.
+
+Abra o arquivo e edite para o seguinte SFC completo — PHP e HTML no mesmo arquivo:
+
+```blade
+{{-- resources/views/pages/⚡dashboard.blade.php --}}
 
 <?php
 
@@ -62,8 +79,8 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-new #[Title('Dashboard')]          // título da aba do browser
-    #[Layout('layouts.app')]       // qual layout usar (padrão já é esse)
+new #[Title('Dashboard')]
+    #[Layout('layouts::app')]   {{-- layout padrão; pode omitir se não customizar --}}
     class extends Component {
 
     public string $mensagem = 'Bem-vindo ao Dashboard!';
@@ -72,11 +89,6 @@ new #[Title('Dashboard')]          // título da aba do browser
     public function incrementar(): void
     {
         $this->contador++;
-    }
-
-    public function render(): \Illuminate\Contracts\View\View
-    {
-        return view('livewire.pages.dashboard'); // aponta pro template abaixo
     }
 }
 ?>
@@ -89,54 +101,60 @@ new #[Title('Dashboard')]          // título da aba do browser
 </div>
 ```
 
-## Passo 4 — Registrar a rota no web.php
+> **Por que não há `render()` no SFC?**
+> Quando PHP e template estão no mesmo arquivo `.blade.php`, o Livewire 4 infere o template automaticamente. O método `render()` só é necessário em componentes multi-file (classe `.php` separada do template).
 
-Para rotear para um componente, use o método Route::livewire() no arquivo routes/web.php. Laravel
-ss
-```bash
+---
+
+## Passo 4 — Registrar a Rota
+
+No Livewire 4, page components são roteados com `Route::livewire()`:
+
+```php
 // routes/web.php
 
 use Illuminate\Support\Facades\Route;
 
-// ✅ Sem middleware — funciona sem usuário
+// Sem middleware — funciona sem usuário autenticado
 Route::livewire('/dashboard', 'pages::dashboard');
-
-// ❌ NÃO use ainda — exige autenticação
-// Route::livewire('/dashboard', 'pages::dashboard')->middleware('auth');
 ```
 
-Acesse em: http://localhost:8080/dashboard
-Quando você implementar o login (Laravel Breeze, Fortify, ou manual), aí sim você volta e adiciona o ->middleware('auth'). Não tem nenhuma outra dependência no guia que precise de usuário — layout, SFC, componente e rota funcionam todos sem autenticação.
+Acesse em: `http://localhost:8080/dashboard`
 
-quando tiver usuários
-```bash
+Quando você implementar autenticação (Laravel Breeze, Fortify ou manual), adicione o middleware normalmente:
+
+```php
 // routes/web.php
 
 use Illuminate\Support\Facades\Route;
 
-Route::livewire('/dashboard', 'pages::dashboard')
-    ->middleware('auth');   // adicione middlewares normalmente
+// Rota simples protegida
+Route::livewire('/dashboard', 'pages::dashboard')->middleware('auth');
 
 // Rota com parâmetro
-Route::livewire('/usuarios/{id}', 'pages::usuario-detalhe');
+Route::livewire('/posts/{id}', 'pages::show-post');
 
-// Múltiplas rotas protegidas
+// Múltiplas rotas protegidas em grupo
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('/perfil',     'pages::perfil');
     Route::livewire('/relatorios', 'pages::relatorios');
 });
 ```
 
+---
+
 ## Passo 5 — Criar um Componente Reutilizável
 
-Componentes reutilizáveis (não são páginas) ficam em resources/views/livewire/:
+Componentes reutilizáveis (que não são páginas) são criados sem namespace:
+
 ```bash
 docker compose exec app php artisan make:livewire contador
 ```
 
-Cria resources/views/livewire/⚡contador.blade.php:
-```bash
-{{-- resources/views/livewire/contador.blade.php --}}
+Isso cria `resources/views/components/⚡contador.blade.php`. Abra e edite para o seguinte SFC:
+
+```blade
+{{-- resources/views/components/⚡contador.blade.php --}}
 
 <?php
 
@@ -145,7 +163,7 @@ use Livewire\Component;
 
 new class extends Component {
 
-    // Prop recebida do pai — readonly do lado do frontend
+    // Prop recebida do pai — protegida contra alteração pelo frontend
     #[Locked]
     public string $titulo = 'Contador';
 
@@ -163,11 +181,6 @@ new class extends Component {
             $this->valor--;
         }
     }
-
-    public function render(): \Illuminate\Contracts\View\View
-    {
-        return view('livewire.contador');
-    }
 }
 ?>
 
@@ -182,45 +195,56 @@ new class extends Component {
     <span wire:loading>Atualizando...</span>
 </div>
 ```
+
+---
+
 ## Passo 6 — Usar o Componente dentro de uma Página
 
-Dentro de qualquer template Blade (inclusive de outro Livewire):
+Dentro de qualquer template Blade (inclusive de outro componente Livewire):
 
-```bash
-{{-- dentro do template do dashboard --}}
+```blade
+{{-- trecho do template do dashboard --}}
 <div>
     <h1>Dashboard</h1>
 
-    {{-- Sintaxe de tag Blade --}}
+    {{-- Passando uma string literal --}}
     <livewire:contador titulo="Visitas hoje" />
 
-    {{-- Ou com chave para forçar re-mount quando o ID mudar --}}
+    {{-- Passando uma variável dinâmica com :key para forçar re-mount --}}
     <livewire:contador :titulo="$minhaVariavel" :key="$minhaVariavel" />
 </div>
 ```
 
-### Regra do key: Sempre use :key quando o componente depende de dados dinâmicos do pai e precisa ser recriado quando esses dados mudam.
+> **Regra do `:key`:** Use sempre que o componente depende de dados dinâmicos do pai e precisa ser recriado quando esses dados mudam.
 
-# Resumo — Estrutura de arquivos final
+---
+
+## Resumo — Estrutura de arquivos final
+
 ```
 resources/views/
 ├── layouts/
-│   └── app.blade.php          ← Passo 2: Layout base
+│   └── app.blade.php              ← Passo 2: Layout base (gerado por livewire:layout)
 ├── pages/
-│   └── ⚡dashboard.blade.php   ← Passo 3: Page Component (SFC)
-└── livewire/
-    └── ⚡contador.blade.php     ← Passo 5: Componente reutilizável (SFC)
+│   └── ⚡dashboard.blade.php      ← Passo 3: Page Component (SFC) — namespace pages::
+└── components/
+    └── ⚡contador.blade.php        ← Passo 5: Componente reutilizável (SFC)
 
 routes/
-└── web.php                    ← Passo 4: Route::livewire()
+└── web.php                        ← Passo 4: Route::livewire()
 ```
-# Regras de ouro para não errar
 
-|O que fazer | Por quê |
+---
+
+## Regras de ouro para não errar
+
+| O que fazer | Por quê |
 |---|---|
-| `#[Locked]`  em props que o frontend não deve alterar | Segurança — qualquer `public` sem `Locked` pode ser alterado via request forjado |
+| `#[Locked]` em props que o frontend não deve alterar | Segurança — qualquer `public` sem `Locked` pode ser alterado via request forjado |
 | `wire:loading.attr="disabled"` nos botões | Evita double-submit enquanto o servidor processa |
 | `:key` em componentes com dados dinâmicos | Garante re-mount correto quando os dados mudam |
 | Nunca usar `@yield` no layout | Livewire 4 usa `$slot`, não herança de template |
-| `Route::livewire()` em vez de `Route::get()` + view | É a forma correta para page components |
+| `Route::livewire()` para page components | É a forma oficial do Livewire 4 para rotear páginas |
+| Omitir `render()` no SFC | O Livewire 4 infere o template automaticamente no mesmo arquivo |
+| Usar `pages::` ao criar page components | Organiza os arquivos em `resources/views/pages/`, separando pages de componentes reutilizáveis |
 | Lógica de negócio em métodos `public` isolados | Fica testável e o Livewire consegue chamar via `wire:click` |
