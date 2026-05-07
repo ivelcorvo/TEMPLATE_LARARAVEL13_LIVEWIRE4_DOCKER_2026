@@ -53,6 +53,10 @@ Se o repositório já possui `src/` com o Laravel:
 ```bash
 docker run --rm -v "${PWD}/src:/app" composer install
 ```
+se o pc for uma carroça:
+```bash
+docker compose exec -e COMPOSER_PROCESS_TIMEOUT=2000 app composer install --no-interaction
+```
 
 Para uma instalação do zero (sem `src/`):
 ```bash
